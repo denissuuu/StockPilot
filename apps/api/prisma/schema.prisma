@@ -1,0 +1,315 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  EMPLOYEE
+  VIEWER
+}
+
+enum MovementType {
+  INITIAL
+  PURCHASE_RECEIPT
+  SALE
+  ADJUSTMENT_IN
+  ADJUSTMENT_OUT
+  RETURN_IN
+  RETURN_OUT
+}
+
+enum AdjustmentReason {
+  DAMAGE
+  EXPIRY
+  THEFT
+  COUNT_CORRECTION
+  FOUND
+  OTHER
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  ORDERED
+  PARTIALLY_RECEIVED
+  RECEIVED
+  CANCELLED
+}
+
+enum SaleStatus {
+  COMPLETED
+  CANCELLED
+}
+
+/// L’organisation est l’entreprise (companyId) qui délimite le tenant.
+model Organization {
+  id               String            @id @default(uuid()) @db.Uuid
+  name             String            @db.VarChar(160)
+  legalName        String?           @db.VarChar(200)
+  taxId            String?           @db.VarChar(80)
+  currency         String            @default("EUR") @db.VarChar(3)
+  timezone         String            @default("Europe/Paris") @db.VarChar(80)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  users            User[]
+  categories       Category[]
+  products         Product[]
+  suppliers        Supplier[]
+  customers        Customer[]
+  stockMovements   StockMovement[]
+  stockAdjustments StockAdjustment[]
+  purchaseOrders   PurchaseOrder[]
+  sales            Sale[]
+
+  @@index([name])
+}
+
+model User {
+  id                    String            @id @default(uuid()) @db.Uuid
+  organizationId        String            @db.Uuid
+  email                 String            @unique @db.VarChar(320)
+  passwordHash          String            @db.VarChar(255)
+  firstName             String            @db.VarChar(80)
+  lastName              String            @db.VarChar(80)
+  role                  Role              @default(EMPLOYEE)
+  isActive              Boolean           @default(true)
+  lastLoginAt           DateTime?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  organization          Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdPurchaseOrders PurchaseOrder[]   @relation("PurchaseOrderCreator")
+  createdSales          Sale[]            @relation("SaleCreator")
+  stockMovements        StockMovement[]   @relation("MovementCreator")
+  stockAdjustments      StockAdjustment[] @relation("AdjustmentCreator")
+
+  @@index([organizationId, role])
+  @@index([organizationId, isActive])
+}
+
+model Category {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  name           String       @db.VarChar(120)
+  description    String?
+  parentId       String?      @db.Uuid
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  parent         Category?    @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children       Category[]   @relation("CategoryHierarchy")
+  products       Product[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId, parentId])
+}
+
+model Product {
+  id                 String              @id @default(uuid()) @db.Uuid
+  organizationId     String              @db.Uuid
+  categoryId         String?             @db.Uuid
+  sku                String              @db.VarChar(80)
+  name               String              @db.VarChar(200)
+  description        String?
+  barcode            String?             @db.VarChar(80)
+  unit               String              @default("pcs") @db.VarChar(20)
+  costPrice          Decimal             @db.Decimal(14, 4)
+  salePrice          Decimal             @db.Decimal(14, 4)
+  taxRate            Decimal             @default(20) @db.Decimal(6, 3)
+  minStock           Decimal             @default(0) @db.Decimal(16, 4)
+  maxStock           Decimal?            @db.Decimal(16, 4)
+  isActive           Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  category           Category?           @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  stockMovements     StockMovement[]
+  stockAdjustments   StockAdjustment[]
+  purchaseOrderLines PurchaseOrderLine[]
+  saleLines          SaleLine[]
+
+  @@unique([organizationId, sku])
+  @@unique([organizationId, barcode])
+  @@index([organizationId, barcode])
+  @@index([organizationId, name])
+  @@index([organizationId, categoryId])
+}
+
+model Supplier {
+  id             String          @id @default(uuid()) @db.Uuid
+  organizationId String          @db.Uuid
+  name           String          @db.VarChar(180)
+  email          String?         @db.VarChar(320)
+  phone          String?         @db.VarChar(40)
+  address        String?
+  taxId          String?         @db.VarChar(80)
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  purchaseOrders PurchaseOrder[]
+
+  @@index([organizationId, name])
+  @@index([organizationId, isActive])
+}
+
+model Customer {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  name           String       @db.VarChar(180)
+  email          String?      @db.VarChar(320)
+  phone          String?      @db.VarChar(40)
+  address        String?
+  taxId          String?      @db.VarChar(80)
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  sales          Sale[]
+
+  @@index([organizationId, name])
+  @@index([organizationId, isActive])
+}
+
+model StockMovement {
+  id             String           @id @default(uuid()) @db.Uuid
+  organizationId String           @db.Uuid
+  productId      String           @db.Uuid
+  type           MovementType
+  quantity       Decimal          @db.Decimal(16, 4)
+  referenceType  String?          @db.VarChar(50)
+  referenceId    String?          @db.Uuid
+  reason         String?
+  note           String?
+  unitCost       Decimal?         @db.Decimal(14, 4)
+  totalValue     Decimal?         @db.Decimal(16, 4)
+  createdById    String?          @db.Uuid
+  createdAt      DateTime         @default(now())
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  product        Product          @relation(fields: [productId], references: [id], onDelete: Restrict)
+  createdBy      User?            @relation("MovementCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  adjustment     StockAdjustment? @relation("AdjustmentMovement")
+
+  @@index([organizationId, productId, createdAt])
+  @@index([organizationId, type, createdAt])
+  @@index([referenceType, referenceId])
+}
+
+model StockAdjustment {
+  id             String           @id @default(uuid()) @db.Uuid
+  organizationId String           @db.Uuid
+  productId      String           @db.Uuid
+  quantity       Decimal          @db.Decimal(16, 4)
+  reason         AdjustmentReason
+  note           String?
+  movementId     String           @unique @db.Uuid
+  createdById    String?          @db.Uuid
+  createdAt      DateTime         @default(now())
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  product        Product          @relation(fields: [productId], references: [id], onDelete: Restrict)
+  movement       StockMovement    @relation("AdjustmentMovement", fields: [movementId], references: [id], onDelete: Restrict)
+  createdBy      User?            @relation("AdjustmentCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, productId, createdAt])
+  @@index([organizationId, reason])
+}
+
+model PurchaseOrder {
+  id             String              @id @default(uuid()) @db.Uuid
+  organizationId String              @db.Uuid
+  supplierId     String              @db.Uuid
+  reference      String?             @db.VarChar(80)
+  status         PurchaseOrderStatus @default(DRAFT)
+  orderedAt      DateTime?
+  expectedAt     DateTime?
+  receivedAt     DateTime?
+  notes          String?
+  subtotal       Decimal             @db.Decimal(16, 2)
+  taxTotal       Decimal             @db.Decimal(16, 2)
+  total          Decimal             @db.Decimal(16, 2)
+  createdById    String?             @db.Uuid
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  supplier       Supplier            @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  createdBy      User?               @relation("PurchaseOrderCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  lines          PurchaseOrderLine[]
+
+  @@index([organizationId, status, createdAt])
+  @@index([organizationId, supplierId])
+  @@index([organizationId, reference])
+}
+
+model PurchaseOrderLine {
+  id               String        @id @default(uuid()) @db.Uuid
+  purchaseOrderId  String        @db.Uuid
+  productId        String        @db.Uuid
+  quantity         Decimal       @db.Decimal(16, 4)
+  receivedQuantity Decimal       @default(0) @db.Decimal(16, 4)
+  unitCost         Decimal       @db.Decimal(14, 4)
+  discountPercent  Decimal       @default(0) @db.Decimal(6, 3)
+  taxRate          Decimal       @default(20) @db.Decimal(6, 3)
+  lineSubtotal     Decimal       @db.Decimal(16, 2)
+  taxAmount        Decimal       @db.Decimal(16, 2)
+  lineTotal        Decimal       @db.Decimal(16, 2)
+  purchaseOrder    PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product          Product       @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@unique([purchaseOrderId, productId])
+  @@index([productId])
+}
+
+model Sale {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  customerId     String?      @db.Uuid
+  reference      String?      @db.VarChar(80)
+  status         SaleStatus   @default(COMPLETED)
+  soldAt         DateTime     @default(now())
+  subtotal       Decimal      @db.Decimal(16, 2)
+  discountTotal  Decimal      @db.Decimal(16, 2)
+  taxTotal       Decimal      @db.Decimal(16, 2)
+  total          Decimal      @db.Decimal(16, 2)
+  costTotal      Decimal      @db.Decimal(16, 2)
+  grossProfit    Decimal      @db.Decimal(16, 2)
+  marginPercent  Decimal      @db.Decimal(8, 3)
+  notes          String?
+  createdById    String?      @db.Uuid
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer       Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  createdBy      User?        @relation("SaleCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  lines          SaleLine[]
+
+  @@index([organizationId, status, soldAt])
+  @@index([organizationId, customerId, soldAt])
+  @@index([organizationId, reference])
+}
+
+model SaleLine {
+  id              String  @id @default(uuid()) @db.Uuid
+  saleId          String  @db.Uuid
+  productId       String  @db.Uuid
+  productSku      String  @db.VarChar(80)
+  productName     String  @db.VarChar(200)
+  quantity        Decimal @db.Decimal(16, 4)
+  unitPrice       Decimal @db.Decimal(14, 4)
+  unitCost        Decimal @db.Decimal(14, 4)
+  discountPercent Decimal @default(0) @db.Decimal(6, 3)
+  taxRate         Decimal @default(20) @db.Decimal(6, 3)
+  lineSubtotal    Decimal @db.Decimal(16, 2)
+  taxAmount       Decimal @db.Decimal(16, 2)
+  lineTotal       Decimal @db.Decimal(16, 2)
+  costTotal       Decimal @db.Decimal(16, 2)
+  lineProfit      Decimal @db.Decimal(16, 2)
+  sale            Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product         Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([saleId])
+  @@index([productId])
+}

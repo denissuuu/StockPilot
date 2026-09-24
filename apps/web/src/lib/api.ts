@@ -550,6 +550,10 @@ function exportCsv(path: string, params?: Record<string, unknown>): Promise<Blob
   return api.get(path, { params, responseType: "blob" }).then((response) => response.data as Blob);
 }
 
+function idempotencyHeaders(): Record<string, string> {
+  return { "Idempotency-Key": globalThis.crypto.randomUUID() };
+}
+
 function toProductRequest<T extends Partial<ProductPayload>>(payload: T): T {
   const { stockQuantity: _stockQuantity, status, purchasePrice, ...basePayload } = payload;
   return {
@@ -658,7 +662,7 @@ export const purchaseOrdersApi = {
   get: (id: ID) => api.get(`/purchase-orders/${id}`).then((response) => normalizePurchaseOrder(response.data)),
   create: (payload: PurchaseOrderPayload) => create<PurchaseOrder, Record<string, unknown>>("/purchase-orders", toPurchaseRequest(payload)),
   order: (id: ID) => api.post(`/purchase-orders/${id}/order`).then((response) => normalizePurchaseOrder(response.data)),
-  receive: (id: ID, payload: ReceivePurchaseOrderPayload) => api.post(`/purchase-orders/${id}/receive`, { lines: payload.lines, receivedAt: payload.receivedAt }).then((response) => normalizePurchaseOrder(response.data)),
+  receive: (id: ID, payload: ReceivePurchaseOrderPayload) => api.post(`/purchase-orders/${id}/receive`, { lines: payload.lines, receivedAt: payload.receivedAt }, { headers: idempotencyHeaders() }).then((response) => normalizePurchaseOrder(response.data)),
   cancel: (id: ID) => api.post(`/purchase-orders/${id}/cancel`).then((response) => normalizePurchaseOrder(response.data)),
 };
 
@@ -671,7 +675,7 @@ export const customersApi = {
 
 export const salesOrdersApi = {
   list: (params?: Record<string, unknown>) => normalizedList("/sales", normalizeSalesOrder, params),
-  create: (payload: SalesOrderPayload) => create<SalesOrder, Record<string, unknown>>("/sales", toSalesRequest(payload)),
+  create: (payload: SalesOrderPayload) => api.post("/sales", toSalesRequest(payload), { headers: idempotencyHeaders() }).then((response) => normalizeSalesOrder(response.data)),
   cancel: (id: ID) => api.post(`/sales/${id}/cancel`).then((response) => normalizeSalesOrder(response.data)),
 };
 

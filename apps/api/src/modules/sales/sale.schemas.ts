@@ -1,12 +1,13 @@
 import { SaleStatus } from '@prisma/client';
 import { z } from 'zod';
+import { decimalPlaces } from '../../lib/validation.js';
 
 const lineSchema = z.object({
   productId: z.string().uuid(),
-  quantity: z.coerce.number().finite().positive(),
-  unitPrice: z.coerce.number().finite().min(0).optional(),
-  discountPercent: z.coerce.number().finite().min(0).max(100).default(0),
-  taxRate: z.coerce.number().finite().min(0).max(100).optional(),
+  quantity: z.coerce.number().finite().positive().refine((value) => decimalPlaces(value, 4), 'La quantité doit avoir au plus 4 décimales'),
+  unitPrice: z.coerce.number().finite().min(0).refine((value) => decimalPlaces(value, 4), 'Le prix doit avoir au plus 4 décimales').optional(),
+  discountPercent: z.coerce.number().finite().min(0).max(100).refine((value) => decimalPlaces(value, 3), 'La remise doit avoir au plus 3 décimales').default(0),
+  taxRate: z.coerce.number().finite().min(0).max(100).refine((value) => decimalPlaces(value, 3), 'La TVA doit avoir au plus 3 décimales').optional(),
 });
 
 export const listSalesSchema = z.object({

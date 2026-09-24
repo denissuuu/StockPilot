@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
 import { conflict, notFound, unprocessable } from '../../lib/errors.js';
 import { pageMeta, pagination } from '../../lib/pagination.js';
+import { acquireIdempotencyKey, completeIdempotencyKey, idempotencyHash } from '../../lib/idempotency.js';
 import { calculateSaleLine, calculateSaleTotals } from '../../lib/financial.js';
 import { getCurrentStocks } from '../catalog/stock.service.js';
 import type { CreateSaleInput, ListSalesInput } from './sale.schemas.js';
@@ -34,8 +35,12 @@ export async function getSale(organizationId: string, id: string) {
   return sale;
 }
 
-export async function createSale(organizationId: string, createdById: string, input: CreateSaleInput) {
+export async function createSale(organizationId: string, createdById: string, input: CreateSaleInput, idempotencyKey?: string) {
   return prisma.$transaction(async (tx) => {
+    const operation = 'sale:create';
+    const replayId = await acquireIdempotencyKey(tx, organizationId, operation, idempotencyKey, idempotencyHash(input));
+    if (replayId) return tx.sale.findUniqueOrThrow({ where: { id: replayId }, include: saleInclude });
+
     if (input.customerId) {
       const customer = await tx.customer.findFirst({ where: { id: input.customerId, organizationId, isActive: true } });
       if (!customer) throw notFound('Client');
@@ -109,6 +114,7 @@ export async function createSale(organizationId: string, createdById: string, in
         },
       });
     }
+    await completeIdempotencyKey(tx, organizationId, operation, idempotencyKey, sale.id);
     return sale;
   }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 }

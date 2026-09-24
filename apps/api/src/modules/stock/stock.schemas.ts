@@ -1,5 +1,6 @@
 import { AdjustmentReason, MovementType } from '@prisma/client';
 import { z } from 'zod';
+import { decimalPlaces } from '../../lib/validation.js';
 
 const optionalDate = z.coerce.date().optional();
 
@@ -15,15 +16,15 @@ export const listMovementsSchema = z.object({
 
 export const createAdjustmentSchema = z.object({
   productId: z.string().uuid(),
-  quantity: z.coerce.number().finite().refine((value) => value !== 0, 'La quantité doit être différente de zéro'),
+  quantity: z.coerce.number().finite().refine((value) => value !== 0 && decimalPlaces(value, 4), 'La quantité doit être non nulle et avoir au plus 4 décimales'),
   reason: z.nativeEnum(AdjustmentReason),
   note: z.string().trim().max(1000).nullable().optional(),
 });
 
 export const createInitialStockSchema = z.object({
   productId: z.string().uuid(),
-  quantity: z.coerce.number().finite().positive(),
-  unitCost: z.coerce.number().finite().min(0).optional(),
+  quantity: z.coerce.number().finite().positive().refine((value) => decimalPlaces(value, 4), 'La quantité doit avoir au plus 4 décimales'),
+  unitCost: z.coerce.number().finite().min(0).refine((value) => decimalPlaces(value, 4), 'Le coût doit avoir au plus 4 décimales').optional(),
   note: z.string().trim().max(1000).nullable().optional(),
 });
 

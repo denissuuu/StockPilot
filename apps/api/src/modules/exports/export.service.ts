@@ -15,11 +15,12 @@ async function exportProducts(organizationId: string, search?: string) {
   const products = await prisma.product.findMany({
     where: { organizationId, ...(search ? { OR: [{ name: { contains: search, mode: 'insensitive' } }, { sku: { contains: search, mode: 'insensitive' } }, { barcode: { contains: search, mode: 'insensitive' } }] } : {}) },
     orderBy: { name: 'asc' },
+    include: { category: { select: { name: true } } },
   });
   const stocks = await getCurrentStocks(prisma, organizationId, products.map((product) => product.id));
   const content = toCsv(
     ['SKU', 'Nom', 'Code-barres', 'Catégorie', 'Unité', 'Coût', 'Prix de vente', 'TVA (%)', 'Stock', 'Seuil minimum', 'Actif'],
-    products.map((product) => [product.sku, product.name, product.barcode, product.categoryId ?? '', product.unit, money(product.costPrice), money(product.salePrice), percent(product.taxRate), numericQuantity(stocks.get(product.id) ?? 0), numericQuantity(product.minStock), product.isActive ? 'oui' : 'non']),
+    products.map((product) => [product.sku, product.name, product.barcode, product.category?.name ?? '', product.unit, money(product.costPrice), money(product.salePrice), percent(product.taxRate), numericQuantity(stocks.get(product.id) ?? 0), numericQuantity(product.minStock), product.isActive ? 'oui' : 'non']),
   );
   return { filename: 'produits.csv', content };
 }

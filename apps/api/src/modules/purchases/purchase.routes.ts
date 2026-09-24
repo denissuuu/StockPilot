@@ -78,6 +78,7 @@ export async function purchaseRoutes(app: FastifyInstance): Promise<void> {
         ...write.schema,
         summary: 'Réceptionner transactionnellement des lignes',
         params: openApiIdParam,
+        headers: { type: 'object', properties: { 'idempotency-key': { type: 'string', minLength: 8, maxLength: 120 } } },
         body: {
           type: 'object',
           required: ['lines'],
@@ -90,7 +91,8 @@ export async function purchaseRoutes(app: FastifyInstance): Promise<void> {
     },
     async (request, reply) => {
       const id = parse(uuidSchema, (request.params as { id: string }).id);
-      const order = await receivePurchaseOrder(request.authUser.organizationId, id, request.authUser.id, parse(receivePurchaseOrderSchema, request.body));
+      const idempotencyKey = request.headers['idempotency-key']?.toString();
+      const order = await receivePurchaseOrder(request.authUser.organizationId, id, request.authUser.id, parse(receivePurchaseOrderSchema, request.body), idempotencyKey);
       return sendData(reply, serializePurchaseOrder(order));
     },
   );

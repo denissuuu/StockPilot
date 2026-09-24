@@ -30,6 +30,7 @@ export async function saleRoutes(app: FastifyInstance): Promise<void> {
       schema: {
         ...write.schema,
         summary: 'Créer une vente et sortir le stock transactionnellement',
+        headers: { type: 'object', properties: { 'idempotency-key': { type: 'string', minLength: 8, maxLength: 120 } } },
         body: {
           type: 'object',
           required: ['lines'],
@@ -44,7 +45,8 @@ export async function saleRoutes(app: FastifyInstance): Promise<void> {
       },
     },
     async (request, reply) => {
-      const sale = await createSale(request.authUser.organizationId, request.authUser.id, parse(createSaleSchema, request.body));
+      const idempotencyKey = request.headers['idempotency-key']?.toString();
+      const sale = await createSale(request.authUser.organizationId, request.authUser.id, parse(createSaleSchema, request.body), idempotencyKey);
       return sendData(reply, serializeSale(sale), 201);
     },
   );

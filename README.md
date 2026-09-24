@@ -284,7 +284,9 @@ curl -L 'http://localhost:3000/api/v1/exports?type=products' \
 ## Sécurité et confidentialité
 
 - Mots de passe hachés avec bcrypt et jamais stockés en clair.
-- Access JWT court, refresh token rotatif et cookie `HttpOnly`/`SameSite=Lax` pour le navigateur.
+- Access JWT court, refresh token rotatif consommé atomiquement dans Redis et cookie `HttpOnly`/`SameSite=Lax` pour le navigateur.
+- Les ventes et réceptions acceptent une clé d’idempotence pour empêcher les doubles mouvements de stock.
+- Les réceptions mettent à jour le coût moyen pondéré dans la même transaction PostgreSQL.
 - Limitation de débit globale et limites plus strictes sur la connexion, l'inscription et le rafraîchissement.
 - CORS par liste d'origines autorisées, en-têtes Helmet, validation Zod et enveloppes d'erreur sans stack trace.
 - Isolation par `organizationId` vérifiée dans les services, pas seulement dans l'interface.

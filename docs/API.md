@@ -313,7 +313,13 @@ curl -X POST http://localhost:3000/api/v1/purchase-orders/<id>/receive \
   -d '{"lines":[{"lineId":"…","quantity":20}]}'
 ```
 
-La réception est idempotente uniquement si le contrat de l'opération le précise ; ne pas rejouer automatiquement une réception en cas de timeout sans vérifier l'état de la commande.
+Envoyez un en-tête `Idempotency-Key` unique (8 à 120 caractères) pour éviter qu’un retry réseau ne crédite deux fois le stock :
+
+```http
+Idempotency-Key: receipt-2026-0001
+```
+
+Une répétition de la même clé et du même corps retourne la réception existante ; une clé réutilisée avec un autre corps retourne `409`.
 
 ### Ventes
 
@@ -337,7 +343,7 @@ curl -X POST http://localhost:3000/api/v1/sales \
   }'
 ```
 
-Le serveur recalcule le coût de revient, la marge et les mouvements. Le client ne doit pas envoyer un stock ou une marge de confiance comme source de vérité.
+Le serveur recalcule le coût de revient, la marge et les mouvements. Le client ne doit pas envoyer un stock ou une marge de confiance comme source de vérité. Utilisez également `Idempotency-Key` sur `POST /sales` pour rendre un double clic ou un retry réseau sans effet de bord.
 
 ## 8. Tableau de bord et exports
 
@@ -384,7 +390,7 @@ Les erreurs de validation `Zod` sont converties en `VALIDATION_ERROR`. Les confl
 - `pageSize` est compris entre 1 et 100, avec 20 par défaut.
 - Les réponses paginées exposent `total` et `totalPages`.
 - Les filtres de dates doivent être des dates ISO; l'API vérifie `from <= to`.
-- Les mutations de stock, de réception et de vente sont transactionnelles. En cas de réponse réseau ambiguë, lire l'état de la ressource avant de retenter.
+- Les mutations de stock, de réception et de vente sont transactionnelles. `POST /sales` et `POST /purchase-orders/{id}/receive` acceptent `Idempotency-Key` pour rejouer sans dupliquer les mouvements.
 - Les suppressions de produits, fournisseurs, clients et utilisateurs sont des désactivations logiques dans le modèle actuel.
 
 ## 11. Versionnement et évolution

@@ -1,7 +1,8 @@
 import { z } from 'zod';
+import { decimalPlaces } from '../../lib/validation.js';
 
-const nonNegative = z.coerce.number().finite().min(0);
-const taxRate = z.coerce.number().finite().min(0).max(100);
+const nonNegative = z.coerce.number().finite().min(0).refine((value) => decimalPlaces(value, 4), 'La valeur doit avoir au plus 4 décimales');
+const taxRate = z.coerce.number().finite().min(0).max(100).refine((value) => decimalPlaces(value, 3), 'La TVA doit avoir au plus 3 décimales');
 const optionalBoolean = z.preprocess((value) => {
   if (value === undefined) return undefined;
   return value === true || value === 'true' || value === '1';

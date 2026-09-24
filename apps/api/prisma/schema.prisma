@@ -65,6 +65,7 @@ model Organization {
   stockAdjustments StockAdjustment[]
   purchaseOrders   PurchaseOrder[]
   sales            Sale[]
+  idempotencyKeys  IdempotencyKey[]
 
   @@index([name])
 }
@@ -312,4 +313,18 @@ model SaleLine {
 
   @@index([saleId])
   @@index([productId])
+}
+
+model IdempotencyKey {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  operation      String       @db.VarChar(80)
+  key            String       @db.VarChar(120)
+  requestHash    String       @db.Char(64)
+  resourceId     String?      @db.Uuid
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, operation, key])
+  @@index([organizationId, createdAt])
 }

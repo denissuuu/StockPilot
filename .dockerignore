@@ -1,0 +1,32 @@
+# Git et fichiers de documentation ne sont pas nécessaires dans les images.
+.git
+.github
+.gitignore
+.editorconfig
+README.md
+docs
+
+# Dépendances et sorties locales
+node_modules
+**/node_modules
+**/dist
+**/build
+**/coverage
+.vite
+**/.vite
+*.tsbuildinfo
+
+# Secrets et données locales
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+*.sqlite
+*.sqlite3
+*.db
+
+# Divers
+.DS_Store
+*.log

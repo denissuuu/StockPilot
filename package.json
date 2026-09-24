@@ -1,0 +1,45 @@
+{
+  "name": "stockpilot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Monorepo TypeScript de pilotage des stocks, des achats et des ventes",
+  "license": "UNLICENSED",
+  "workspaces": [
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22",
+    "npm": ">=10"
+  },
+  "scripts": {
+    "dev": "concurrently --kill-others-on-fail --names api,web --prefix-colors blue,magenta \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "npm run dev --workspace apps/api",
+    "dev:web": "npm run dev --workspace apps/web",
+    "start:api": "npm run start --workspace apps/api",
+    "start:web": "npm run dev --workspace apps/web",
+    "build": "npm run build --workspaces --if-present",
+    "build:api": "npm run build --workspace apps/api",
+    "build:web": "npm run build --workspace apps/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "typecheck:api": "npm run typecheck --workspace apps/api",
+    "typecheck:web": "npm run typecheck --workspace apps/web",
+    "test": "npm run test --workspaces --if-present",
+    "test:api": "npm run test --workspace apps/api",
+    "test:web": "npm run test --workspace apps/web",
+    "test:watch": "npm run test:watch --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "lint:api": "npm run lint --workspace apps/api",
+    "lint:web": "npm run lint --workspace apps/web",
+    "db:generate": "npm run prisma:generate --workspace apps/api",
+    "db:migrate": "npm run db:migrate:dev",
+    "db:migrate:dev": "npm run prisma:migrate --workspace apps/api",
+    "db:deploy": "npm run prisma:deploy --workspace apps/api",
+    "db:seed": "npm run prisma:seed --workspace apps/api",
+    "db:reset": "npm exec --workspace apps/api -- prisma migrate reset --force",
+    "db:status": "npm exec --workspace apps/api -- prisma migrate status",
+    "db:studio": "npm exec --workspace apps/api -- prisma studio"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

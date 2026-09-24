@@ -1,0 +1,48 @@
+# Dépendances et sorties de build
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+build/
+**/build/
+coverage/
+**/coverage/
+*.tsbuildinfo
+.vite/
+**/.vite/
+
+# Environnement local et secrets
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+*.pem
+*.key
+
+# Données locales et artefacts de développement
+*.sqlite
+*.sqlite3
+*.db
+.tmp/
+tmp/
+/data/
+/logs/
+*.log
+
+# Éditeurs et système
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Le projet utilise npm workspaces. Un lock npm sera versionné dès
+# qu'il sera généré et vérifié ; ne pas mélanger avec un autre gestionnaire.
+yarn.lock
+pnpm-lock.yaml
+
+# Fichiers générés par les outils locaux
+/.eslintcache

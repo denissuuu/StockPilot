@@ -1,6 +1,6 @@
 # StockPilot API
 
-API REST TypeScript/Fastify 5 pour la gestion de portfolio, catalogue, stock, achats, ventes et dashboard. PostgreSQL/Prisma et Redis sont requis.
+API REST TypeScript/Fastify 5 pour la gestion des stocks, du catalogue, des achats et des ventes. PostgreSQL/Prisma et Redis sont requis.
 
 ## Démarrage local
 
@@ -34,10 +34,10 @@ Toutes les ressources métier sont filtrées par l’organisation (companyId) is
 
 ## Docker
 
+Depuis la racine du monorepo :
+
 ```bash
-JWT_ACCESS_SECRET='un-secret-access-de-32-caracteres-minimum' \
-JWT_REFRESH_SECRET='un-secret-refresh-de-32-caracteres-minimum' \
-docker compose up --build
+docker compose up --build -d
 ```
 
 En production, définir des secrets JWT distincts, `COOKIE_SECURE=true`, `CORS_ORIGIN` et les variables de connexion. Le service refuse les secrets de développement en mode production.

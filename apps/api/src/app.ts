@@ -36,7 +36,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(cookie, { secret: env.JWT_ACCESS_SECRET });
   await app.register(cors, {
     origin: (origin, callback) => {
-      if (!origin || corsOrigins.includes('*') || corsOrigins.includes(origin)) return callback(null, true);
+      if (!origin || corsOrigins.includes(origin)) return callback(null, true);
       return callback(new Error('Origine non autorisée'), false);
     },
     credentials: true,

@@ -3,6 +3,7 @@ import { Prisma, Role } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
 import { conflict, forbidden, notFound } from '../../lib/errors.js';
 import { pageMeta, pagination } from '../../lib/pagination.js';
+import { revokeUserRefreshSessions } from '../auth/token.service.js';
 import type { CreateUserInput, ListUsersInput, UpdateUserInput } from './user.schemas.js';
 
 export async function listUsers(organizationId: string, input: ListUsersInput) {
@@ -62,32 +63,50 @@ export async function updateUser(
   actorRole: Role,
   input: UpdateUserInput,
 ) {
-  const user = await getUser(organizationId, id);
-  assertCanManageUser(actorRole, user.role);
-  if (input.role) assertCanAssignRole(actorRole, input.role);
-  if (id === actorId && input.isActive === false) throw forbidden('Vous ne pouvez pas désactiver votre propre compte');
-  if (id === actorId && input.role && input.role !== user.role) {
-    throw forbidden('Vous ne pouvez pas modifier votre propre rôle');
-  }
-  if (input.email) {
-    const existing = await prisma.user.findUnique({ where: { email: input.email }, select: { id: true } });
-    if (existing && existing.id !== id) throw conflict('Un compte existe déjà avec cette adresse email');
-  }
   const { password, ...data } = input;
-  return prisma.user.update({
-    where: { id },
-    data: {
-      ...data,
-      ...(password ? { passwordHash: await bcrypt.hash(password, 12) } : {}),
-    },
-  });
+  const passwordHash = password ? await bcrypt.hash(password, 12) : undefined;
+  const updated = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.findFirst({ where: { id, organizationId } });
+    if (!user) throw notFound('Utilisateur');
+    assertCanManageUser(actorRole, user.role);
+    if (input.role) assertCanAssignRole(actorRole, input.role);
+    if (id === actorId && input.isActive === false) throw forbidden('Vous ne pouvez pas désactiver votre propre compte');
+    if (id === actorId && input.role && input.role !== user.role) {
+      throw forbidden('Vous ne pouvez pas modifier votre propre rôle');
+    }
+    if (input.email) {
+      const existing = await tx.user.findUnique({ where: { email: input.email }, select: { id: true } });
+      if (existing && existing.id !== id) throw conflict('Un compte existe déjà avec cette adresse email');
+    }
+    if (user.role === Role.ADMIN) {
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${organizationId}))`;
+      if (input.isActive === false || (input.role && input.role !== Role.ADMIN)) {
+        const otherAdmins = await tx.user.count({ where: { organizationId, role: Role.ADMIN, isActive: true, id: { not: id } } });
+        if (otherAdmins === 0) throw conflict('L’organisation doit conserver au moins un administrateur actif');
+      }
+    }
+    return tx.user.update({
+      where: { id },
+      data: { ...data, ...(passwordHash ? { passwordHash } : {}) },
+    });
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  if (password) await revokeUserRefreshSessions(organizationId, id);
+  return updated;
 }
 
 export async function deactivateUser(organizationId: string, id: string, actorId: string, actorRole: Role): Promise<void> {
   if (id === actorId) throw forbidden('Vous ne pouvez pas supprimer votre propre compte');
-  const user = await getUser(organizationId, id);
-  assertCanManageUser(actorRole, user.role);
-  await prisma.user.update({ where: { id: user.id }, data: { isActive: false } });
+  await prisma.$transaction(async (tx) => {
+    const user = await tx.user.findFirst({ where: { id, organizationId } });
+    if (!user) throw notFound('Utilisateur');
+    assertCanManageUser(actorRole, user.role);
+    if (user.role === Role.ADMIN) {
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${organizationId}))`;
+      const otherAdmins = await tx.user.count({ where: { organizationId, role: Role.ADMIN, isActive: true, id: { not: id } } });
+      if (otherAdmins === 0) throw conflict('L’organisation doit conserver au moins un administrateur actif');
+    }
+    await tx.user.update({ where: { id: user.id }, data: { isActive: false } });
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 }
 
 function assertCanManageUser(actorRole: Role, targetRole: Role): void {

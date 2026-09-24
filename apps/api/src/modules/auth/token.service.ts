@@ -45,8 +45,8 @@ export interface IssuedTokens {
   expiresIn: string;
 }
 
-function refreshKey(organizationId: string, jti: string): string {
-  return `${REFRESH_KEY_PREFIX}${organizationId}:${jti}`;
+function refreshKey(organizationId: string, userId: string, jti: string): string {
+  return `${REFRESH_KEY_PREFIX}${organizationId}:${userId}:${jti}`;
 }
 
 function cookieOptions() {
@@ -91,7 +91,7 @@ export async function issueTokens(user: SessionUser, reply: FastifyReply): Promi
   const tokenHash = createHash('sha256').update(refreshToken).digest('hex');
   await ensureRedisConnection();
   await redis.set(
-    refreshKey(user.organizationId, jti),
+    refreshKey(user.organizationId, user.id, jti),
     JSON.stringify({ userId: user.id, email: user.email, role: user.role, companyId: user.organizationId, tokenHash }),
     'EX',
     env.REFRESH_TTL_SECONDS,
@@ -142,34 +142,39 @@ export async function verifyRefreshToken(token: string): Promise<RefreshClaims> 
 
 export async function rotateRefreshToken(token: string, reply: FastifyReply): Promise<IssuedTokens> {
   const claims = await verifyRefreshToken(token);
-  const key = refreshKey(claims.organizationId, claims.jti);
+  const key = refreshKey(claims.organizationId, claims.sub!, claims.jti);
   await ensureRedisConnection();
-  const stored = await redis.get(key);
-  if (!stored) {
-    throw unauthorized('Session expirée ou révoquée');
-  }
+  const presentedTokenHash = createHash('sha256').update(token).digest('hex');
+  const consumed = await redis.eval(
+    `local value = redis.call('GET', KEYS[1])
+     if not value then return nil end
+     local ok, session = pcall(cjson.decode, value)
+     if not ok then redis.call('DEL', KEYS[1]) return '__INVALID__' end
+     if session.tokenHash ~= ARGV[1] then redis.call('DEL', KEYS[1]) return '__MISMATCH__' end
+     redis.call('DEL', KEYS[1])
+     return value`,
+    1,
+    key,
+    presentedTokenHash,
+  );
+  const stored = typeof consumed === 'string' ? consumed : null;
+  if (!stored) throw unauthorized('Session expirée ou révoquée');
+  if (stored === '__INVALID__' || stored === '__MISMATCH__') throw unauthorized('Session révoquée');
 
   let session: { userId?: string; email?: string; role?: Role; companyId?: string; tokenHash?: string };
   try {
     session = JSON.parse(stored) as { userId?: string; email?: string; role?: Role; companyId?: string; tokenHash?: string };
   } catch {
-    await redis.del(key);
     throw unauthorized('Session invalide');
   }
-  const presentedTokenHash = createHash('sha256').update(token).digest('hex');
-  if (session.userId !== claims.sub || session.email !== claims.email || session.companyId !== claims.companyId || session.tokenHash !== presentedTokenHash) {
-    await redis.del(key);
+  if (session.userId !== claims.sub || session.email !== claims.email || session.companyId !== claims.companyId) {
     throw unauthorized('Session révoquée');
   }
 
   const user = await findActiveUser(claims.sub!);
   if (!user || user.organizationId !== claims.organizationId || claims.companyId !== claims.organizationId) {
-    await redis.del(key);
     throw unauthorized('Session révoquée');
   }
-
-  // Rotation: l’ancien jeton est supprimé avant l’émission du nouveau.
-  await redis.del(key);
   return issueTokens(
     {
       id: user.id,
@@ -188,10 +193,21 @@ export async function revokeRefreshToken(token: string | undefined): Promise<voi
   try {
     const claims = await verifyRefreshToken(token);
     await ensureRedisConnection();
-    await redis.del(refreshKey(claims.organizationId, claims.jti));
+    await redis.del(refreshKey(claims.organizationId, claims.sub!, claims.jti));
   } catch {
     // La suppression d’un cookie déjà expiré est idempotente.
   }
+}
+
+export async function revokeUserRefreshSessions(organizationId: string, userId: string): Promise<void> {
+  await ensureRedisConnection();
+  const pattern = `${REFRESH_KEY_PREFIX}${organizationId}:${userId}:*`;
+  let cursor = '0';
+  do {
+    const [nextCursor, keys] = await redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+    cursor = nextCursor;
+    if (keys.length > 0) await redis.del(...keys);
+  } while (cursor !== '0');
 }
 
 export function clearRefreshCookie(reply: FastifyReply): void {

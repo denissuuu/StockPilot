@@ -45,6 +45,8 @@ if (env.NODE_ENV === 'production') {
   const insecureSecrets = new Set([
     'development-access-secret-change-me-please-32chars',
     'development-refresh-secret-change-me-please-32chars',
+    'change-me-access-secret-with-at-least-32-characters',
+    'change-me-refresh-secret-with-at-least-32-characters',
     'replace-this-access-secret-with-at-least-32-characters',
     'replace-this-refresh-secret-with-at-least-32-characters',
   ]);
@@ -53,6 +55,12 @@ if (env.NODE_ENV === 'production') {
   }
   if (env.JWT_ACCESS_SECRET === env.JWT_REFRESH_SECRET) {
     throw new Error('Les secrets JWT access et refresh doivent être différents');
+  }
+  if (!env.COOKIE_SECURE) {
+    throw new Error('COOKIE_SECURE doit être activé en production');
+  }
+  if (env.CORS_ORIGIN.split(',').map((origin) => origin.trim()).includes('*')) {
+    throw new Error('CORS_ORIGIN ne peut pas utiliser * avec les cookies d’authentification');
   }
 }
 

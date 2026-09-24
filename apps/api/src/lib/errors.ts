@@ -67,8 +67,8 @@ export function normalizeError(error: unknown): {
     if (error.code === 'P2003') {
       return { statusCode: 409, code: 'CONFLICT', message: 'Référence vers une ressource inexistante' };
     }
-    if (error.code === 'P2011') {
-      return { statusCode: 400, code: 'VALIDATION_ERROR', message: 'Constraint de données invalide' };
+    if (error.code === 'P2004' || error.code === 'P2011') {
+      return { statusCode: 422, code: 'UNPROCESSABLE_ENTITY', message: 'La valeur viole une règle métier de la base' };
     }
     if (error.code === 'P2034') {
       return {

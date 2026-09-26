@@ -1,5 +1,12 @@
 # StockPilot
 
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-22_LTS-green)](https://nodejs.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue)](https://www.postgresql.org/)
+[![Redis](https://img.shields.io/badge/Redis-7-red)](https://redis.io/)
+[![Docker](https://img.shields.io/badge/Docker-Compose-blue)](https://www.docker.com/)
+[![License](https://img.shields.io/badge/License-UNLICENSED-lightgrey)](LICENSE)
+
 **StockPilot** est une application web de pilotage des stocks, des approvisionnements et des ventes pour une petite entreprise. Le dépôt est un monorepo TypeScript : une API Fastify organisée par domaines métier, une interface React/Vite et une base PostgreSQL pilotée par Prisma.
 
 StockPilot permet de suivre les produits, les seuils d'alerte, les mouvements, les commandes fournisseurs, les ventes, la marge et les utilisateurs d'une organisation. Les données sont isolées par organisation et les opérations de stock sont conservées dans un journal traçable.

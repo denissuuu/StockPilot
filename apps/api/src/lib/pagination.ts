@@ -1,6 +1,10 @@
 import { z } from 'zod';
 import type { PageMeta } from './response.js';
 
+/**
+ * Schéma de pagination standard de l'API.
+ * Limite maximale de 100 éléments par page pour préserver les performances.
+ */
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),

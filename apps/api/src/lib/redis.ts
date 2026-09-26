@@ -1,6 +1,10 @@
 import { Redis } from 'ioredis';
 import { env } from '../config/env.js';
 
+/**
+ * Instance Redis partagée avec réutilisation en développement.
+ * Utilisée pour les sessions de refresh et l'état éphémère.
+ */
 const globalForRedis = globalThis as unknown as { redis?: Redis };
 
 export const redis =

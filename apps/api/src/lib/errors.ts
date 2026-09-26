@@ -1,6 +1,10 @@
 import { Prisma } from '@prisma/client';
 import { ZodError } from 'zod';
 
+/**
+ * Codes d'erreur normalisés de l'API.
+ * Chaque code correspond à une situation métier ou technique identifiable.
+ */
 export type ErrorCode =
   | 'BAD_REQUEST'
   | 'VALIDATION_ERROR'

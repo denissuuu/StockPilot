@@ -1,6 +1,10 @@
 import { z } from 'zod';
 import { badRequest } from './errors.js';
 
+/**
+ * Schéma de plage de dates pour les requêtes de filtrage.
+ * La plage ne peut pas dépasser 366 jours pour préserver les performances.
+ */
 export const dateRangeSchema = z
   .object({
     from: z.coerce.date().optional(),

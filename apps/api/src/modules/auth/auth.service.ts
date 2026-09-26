@@ -2,6 +2,11 @@ import bcrypt from 'bcryptjs';
 import type { User } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
 import { conflict, unauthorized } from '../../lib/errors.js';
+
+/**
+ * Service d'authentification : création d'organisation, connexion
+ * et récupération de l'utilisateur actif avec son organisation.
+ */
 import type { LoginInput, RegisterInput } from './auth.schemas.js';
 import type { SessionUser } from './token.service.js';
 

@@ -1,6 +1,10 @@
 import 'dotenv/config';
 import { z } from 'zod';
 
+/**
+ * Parseur de variables booléennes depuis les chaînes d'environnement.
+ * Accepte 'true'/'false' avec 'false' par défaut.
+ */
 const booleanFromEnv = z
   .enum(['true', 'false'])
   .default('false')

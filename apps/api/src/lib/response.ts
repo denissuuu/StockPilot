@@ -1,5 +1,9 @@
 import type { FastifyReply } from 'fastify';
 
+/**
+ * Enveloppe de réponse standard pour les opérations réussies.
+ * Toutes les réponses de l'API suivent cette structure.
+ */
 export interface SuccessResponse<T> {
   success: true;
   data: T;

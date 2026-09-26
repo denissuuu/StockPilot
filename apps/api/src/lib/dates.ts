@@ -1,3 +1,7 @@
+/**
+ * Convertit une date en chaîne ISO 8601.
+ * Utilisée pour la sérialisation cohérence des dates dans l'API.
+ */
 export function isoDate(value: Date | string | null | undefined): string | null {
   if (!value) return null;
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString();

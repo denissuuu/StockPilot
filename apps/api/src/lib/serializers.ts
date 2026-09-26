@@ -2,6 +2,11 @@ import { Prisma } from '@prisma/client';
 import { isoDateRequired, isoDate } from './dates.js';
 import { money, percent, quantity as numericQuantity } from './financial.js';
 
+/**
+ * Sérialiseurs de ressources pour l'annotation HTTP.
+ * Convertit les types Prisma (Decimal, DateTime) en formats JSON stables (number, ISO 8601).
+ */
+
 export function numberValue(value: Prisma.Decimal | number | string | null | undefined): number {
   if (value === null || value === undefined) return 0;
   return new Prisma.Decimal(value).toNumber();

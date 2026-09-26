@@ -1,5 +1,9 @@
 import { Prisma } from '@prisma/client';
 
+/**
+ * Type numérique accepté par les fonctions financières.
+ * Peut être un Decimal Prisma, un number, une string ou null/undefined (converti en 0).
+ */
 export type Numeric = Prisma.Decimal | number | string | null | undefined;
 
 export interface FinancialLineInput {

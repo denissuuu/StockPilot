@@ -1,3 +1,7 @@
+/**
+ * Échappe une valeur pour l'inclusion dans un CSV.
+ * Protège contre l'injection de formules Excel (préfixe '+').
+ */
 export function csvEscape(value: unknown): string {
   const text = value === null || value === undefined ? '' : String(value);
   const formula = /^[=+@]/.test(text) || (/^-/.test(text) && !/^-?\d+(?:[.,]\d+)?$/.test(text));

@@ -2,6 +2,10 @@ import { createHash } from 'node:crypto';
 import type { Prisma } from '@prisma/client';
 import { conflict } from './errors.js';
 
+/**
+ * Calcule un hash SHA-256 d'une valeur pour la détection d'idempotence.
+ * Utilisé pour éviter les doubles traitements (ventes, réceptions).
+ */
 export function idempotencyHash(value: unknown): string {
   return createHash('sha256').update(JSON.stringify(value)).digest('hex');
 }

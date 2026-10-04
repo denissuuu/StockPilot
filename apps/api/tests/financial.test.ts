@@ -42,13 +42,22 @@ describe('calculs financiers centralisés', () => {
     const totals = calculatePurchaseTotals([line]);
 
     expect(line.lineSubtotal.toString()).toBe('30');
+    expect(line.discountAmount.toString()).toBe('3');
     expect(line.taxAmount.toString()).toBe('5.4');
     expect(line.lineTotal.toString()).toBe('32.4');
     expect(totals.subtotal.toString()).toBe('30');
+    expect(totals.discountTotal.toString()).toBe('3');
     expect(totals.total.toString()).toBe('32.4');
   });
 
-  it('n’applique la remise qu’à la ligne d’achat, pas au total', () => {
+  it('rend l’en-tête d’une commande d’achat réconciliable', () => {
+    // Invariant vérifié par le client : base HT - remise + TVA = total TTC.
+    const totals = calculatePurchaseTotals([calculatePurchaseLine({ quantity: 4, unitCost: 7.5, discountPercent: 10, taxRate: 20 })]);
+
+    expect(totals.subtotal.minus(totals.discountTotal).plus(totals.taxTotal).toString()).toBe(totals.total.toString());
+  });
+
+  it('n’applique la remise qu’aux lignes qui en déclarent une', () => {
     const lines = [
       calculatePurchaseLine({ quantity: 2, unitCost: 10 }),
       calculatePurchaseLine({ quantity: 1, unitCost: 30, discountPercent: 50 }),

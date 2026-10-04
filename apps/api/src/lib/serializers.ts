@@ -153,6 +153,7 @@ export function serializePurchaseOrder(order: any): Record<string, unknown> {
     receivedAt: isoDate(order.receivedAt),
     notes: order.notes,
     subtotal: money(order.subtotal),
+    discountTotal: money(order.discountTotal),
     taxTotal: money(order.taxTotal),
     total: money(order.total),
     createdById: order.createdById,

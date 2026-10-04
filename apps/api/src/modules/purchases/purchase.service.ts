@@ -63,6 +63,7 @@ export async function createPurchaseOrder(organizationId: string, createdById: s
         expectedAt: input.expectedAt,
         notes: input.notes,
         subtotal: totals.subtotal,
+        discountTotal: totals.discountTotal,
         taxTotal: totals.taxTotal,
         total: totals.total,
         createdById,

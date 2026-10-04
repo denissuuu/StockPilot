@@ -108,6 +108,7 @@ export function calculateSaleTotals(lines: FinancialLine[]): FinancialTotals {
 
 export interface PurchaseLineTotals {
   lineSubtotal: Prisma.Decimal;
+  discountAmount: Prisma.Decimal;
   taxAmount: Prisma.Decimal;
   lineTotal: Prisma.Decimal;
 }
@@ -130,24 +131,31 @@ export function calculatePurchaseLine(input: PurchaseLineInput): PurchaseLineTot
   const discountRate = decimal(input.discountPercent ?? 0);
   const taxRate = decimal(input.taxRate ?? 0);
   const lineSubtotal = qty.mul(unitCost);
-  const taxable = lineSubtotal.mul(new Prisma.Decimal(1).minus(discountRate.div(100)));
+  const discountAmount = lineSubtotal.mul(discountRate).div(100);
+  const taxable = lineSubtotal.minus(discountAmount);
   const taxAmount = taxable.mul(taxRate).div(100);
 
   return {
     lineSubtotal: lineSubtotal.toDecimalPlaces(2),
+    discountAmount: discountAmount.toDecimalPlaces(2),
     taxAmount: taxAmount.toDecimalPlaces(2),
     lineTotal: taxable.plus(taxAmount).toDecimalPlaces(2),
   };
 }
 
-export function calculatePurchaseTotals(
-  lines: PurchaseLineTotals[],
-): { subtotal: Prisma.Decimal; taxTotal: Prisma.Decimal; total: Prisma.Decimal } {
+export function calculatePurchaseTotals(lines: PurchaseLineTotals[]): {
+  subtotal: Prisma.Decimal;
+  discountTotal: Prisma.Decimal;
+  taxTotal: Prisma.Decimal;
+  total: Prisma.Decimal;
+} {
   const subtotal = sum(lines.map((line) => line.lineSubtotal));
+  const discountTotal = sum(lines.map((line) => line.discountAmount));
   const taxTotal = sum(lines.map((line) => line.taxAmount));
   const total = sum(lines.map((line) => line.lineTotal));
   return {
     subtotal: subtotal.toDecimalPlaces(2),
+    discountTotal: discountTotal.toDecimalPlaces(2),
     taxTotal: taxTotal.toDecimalPlaces(2),
     total: total.toDecimalPlaces(2),
   };

@@ -230,6 +230,7 @@ model PurchaseOrder {
   receivedAt     DateTime?
   notes          String?
   subtotal       Decimal             @db.Decimal(16, 2)
+  discountTotal  Decimal             @default(0) @db.Decimal(16, 2)
   taxTotal       Decimal             @db.Decimal(16, 2)
   total          Decimal             @db.Decimal(16, 2)
   createdById    String?             @db.Uuid

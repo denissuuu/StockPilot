@@ -12,10 +12,31 @@ export function numberValue(value: Prisma.Decimal | number | string | null | und
   return new Prisma.Decimal(value).toNumber();
 }
 
-export function serializeUser(user: any): Record<string, unknown> {
+/**
+ * Champs qu'un sérialiseur d'utilisateur doit recevoir.
+ * Explicite plutôt que `any` : une divergence entre le profil renvoyé par
+ * /auth/me et celui renvoyé par /users est alors une erreur de compilation,
+ * pas une surprise à l'exécution.
+ */
+export interface SerializableUser {
+  id: string;
+  organizationId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  isActive?: boolean;
+  lastLoginAt?: Date | string | null;
+  createdAt: Date | string;
+  updatedAt?: Date | string | null;
+  organization?: { id: string; name: string; currency: string; timezone: string } | null;
+}
+
+export function serializeUser(user: SerializableUser): Record<string, unknown> {
   return {
     id: user.id,
     organizationId: user.organizationId,
+    // Alias historique conservé pour les clients qui ne consume que companyId.
     companyId: user.organizationId,
     email: user.email,
     firstName: user.firstName,

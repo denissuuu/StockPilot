@@ -6,6 +6,7 @@ import { unauthorized } from '../../lib/errors.js';
 import { REFRESH_COOKIE, clearRefreshCookie, issueTokens, revokeRefreshToken, rotateRefreshToken } from './token.service.js';
 import { authenticate, register, toSessionUser } from './auth.service.js';
 import { loginSchema, refreshSchema, registerSchema } from './auth.schemas.js';
+import { serializeUser } from '../../lib/serializers.js';
 import { openApiProtected, openApiPublic } from '../../openapi.js';
 
 export async function authRoutes(app: FastifyInstance): Promise<void> {
@@ -106,33 +107,4 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     { preHandler: [app.authenticate], schema: { tags: ['Authentification'], summary: 'Profil courant', ...openApiProtected } },
     async (request, reply) => sendData(reply, serializeUser(request.authUser)),
   );
-}
-
-function serializeUser(user: {
-  id: string;
-  organizationId: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  role: string;
-  isActive?: boolean;
-  lastLoginAt?: Date | null;
-  createdAt?: Date;
-  updatedAt?: Date;
-  organization?: { id: string; name: string; currency: string; timezone: string };
-}): Record<string, unknown> {
-  return {
-    id: user.id,
-    organizationId: user.organizationId,
-    companyId: user.organizationId,
-    email: user.email,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    role: user.role,
-    isActive: user.isActive ?? true,
-    lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
-    createdAt: user.createdAt?.toISOString() ?? null,
-    updatedAt: user.updatedAt?.toISOString() ?? null,
-    organization: user.organization,
-  };
 }

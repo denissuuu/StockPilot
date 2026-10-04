@@ -37,7 +37,8 @@ describe('calculs financiers centralisés', () => {
   });
 
   it('calcule les totaux d’une ligne fournisseur avec remise et taxe', () => {
-    const line = calculatePurchaseLine({ quantity: 4, unitPrice: 7.5, unitCost: 7.5, discountPercent: 10, taxRate: 20 });
+    // Une ligne d’achat ne porte qu’un coût unitaire : aucun prix de vente n’est attendu.
+    const line = calculatePurchaseLine({ quantity: 4, unitCost: 7.5, discountPercent: 10, taxRate: 20 });
     const totals = calculatePurchaseTotals([line]);
 
     expect(line.lineSubtotal.toString()).toBe('30');
@@ -45,6 +46,20 @@ describe('calculs financiers centralisés', () => {
     expect(line.lineTotal.toString()).toBe('32.4');
     expect(totals.subtotal.toString()).toBe('30');
     expect(totals.total.toString()).toBe('32.4');
+  });
+
+  it('n’applique la remise qu’à la ligne d’achat, pas au total', () => {
+    const lines = [
+      calculatePurchaseLine({ quantity: 2, unitCost: 10 }),
+      calculatePurchaseLine({ quantity: 1, unitCost: 30, discountPercent: 50 }),
+    ];
+    const totals = calculatePurchaseTotals(lines);
+
+    expect(lines[0].lineSubtotal.toString()).toBe('20');
+    expect(lines[1].lineSubtotal.toString()).toBe('30');
+    expect(lines[1].lineTotal.toString()).toBe('15');
+    expect(totals.subtotal.toString()).toBe('50');
+    expect(totals.total.toString()).toBe('35');
   });
 
   it('gère les valeurs nulles et les arrondis monétaires', () => {

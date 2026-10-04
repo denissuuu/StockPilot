@@ -51,7 +51,7 @@ export async function createPurchaseOrder(organizationId: string, createdById: s
     if (products.length !== new Set(input.lines.map((line) => line.productId)).size) throw unprocessable('Un ou plusieurs produits sont invalides');
     const productById = new Map(products.map((product) => [product.id, product]));
     const calculated = input.lines.map((line) => {
-      const totals = calculatePurchaseLine({ quantity: line.quantity, unitPrice: line.unitCost, unitCost: line.unitCost, discountPercent: line.discountPercent, taxRate: line.taxRate });
+      const totals = calculatePurchaseLine({ quantity: line.quantity, unitCost: line.unitCost, discountPercent: line.discountPercent, taxRate: line.taxRate });
       return { input: line, totals, product: productById.get(line.productId)! };
     });
     const totals = calculatePurchaseTotals(calculated.map((line) => line.totals));

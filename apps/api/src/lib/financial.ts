@@ -112,9 +112,21 @@ export interface PurchaseLineTotals {
   lineTotal: Prisma.Decimal;
 }
 
-export function calculatePurchaseLine(input: FinancialLineInput): PurchaseLineTotals {
+/**
+ * Entrée d'une ligne d'achat.
+ * Contrairement à une ligne de vente, une ligne d'achat n'a qu'un prix : le coût unitaire payé au fournisseur.
+ */
+export interface PurchaseLineInput {
+  quantity: Numeric;
+  unitCost: Numeric;
+  discountPercent?: Numeric;
+  taxRate?: Numeric;
+}
+
+/** Calcule une ligne d'achat : la remise s'applique avant le calcul de la TVA. */
+export function calculatePurchaseLine(input: PurchaseLineInput): PurchaseLineTotals {
   const qty = decimal(input.quantity);
-  const unitCost = decimal(input.unitPrice);
+  const unitCost = decimal(input.unitCost);
   const discountRate = decimal(input.discountPercent ?? 0);
   const taxRate = decimal(input.taxRate ?? 0);
   const lineSubtotal = qty.mul(unitCost);
@@ -129,7 +141,7 @@ export function calculatePurchaseLine(input: FinancialLineInput): PurchaseLineTo
 }
 
 export function calculatePurchaseTotals(
-  lines: Array<PurchaseLineTotals & { lineSubtotal: Prisma.Decimal; taxAmount: Prisma.Decimal; lineTotal: Prisma.Decimal }>,
+  lines: PurchaseLineTotals[],
 ): { subtotal: Prisma.Decimal; taxTotal: Prisma.Decimal; total: Prisma.Decimal } {
   const subtotal = sum(lines.map((line) => line.lineSubtotal));
   const taxTotal = sum(lines.map((line) => line.taxAmount));

@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { parse, uuidSchema } from '../../lib/validation.js';
 import { sendData } from '../../lib/response.js';
+import { isoDate, isoDateRequired } from '../../lib/dates.js';
 import { openApiProtected } from '../../openapi.js';
 import { updateOrganizationSchema } from './organization.schemas.js';
 import { getOrganization, updateOrganization } from './organization.service.js';
@@ -62,7 +63,7 @@ function serializeOrganization(organization: any): Record<string, unknown> {
     taxId: organization.taxId,
     currency: organization.currency,
     timezone: organization.timezone,
-    createdAt: organization.createdAt.toISOString(),
-    updatedAt: organization.updatedAt.toISOString(),
+    createdAt: isoDateRequired(organization.createdAt),
+    updatedAt: isoDate(organization.updatedAt),
   };
 }

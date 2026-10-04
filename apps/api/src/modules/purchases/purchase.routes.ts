@@ -11,7 +11,7 @@ const purchaseLineProperties = {
   quantity: { type: 'number', exclusiveMinimum: 0 },
   unitCost: { type: 'number', minimum: 0 },
   discountPercent: { type: 'number', minimum: 0, maximum: 100, default: 0 },
-  taxRate: { type: 'number', minimum: 0, maximum: 100, default: 20 },
+  taxRate: { type: 'number', minimum: 0, maximum: 100, description: 'Taux de TVA de la ligne. Par défaut, le taux du produit.' },
 } as const;
 
 const receiptLineProperties = {

@@ -51,8 +51,11 @@ export async function createPurchaseOrder(organizationId: string, createdById: s
     if (products.length !== new Set(input.lines.map((line) => line.productId)).size) throw unprocessable('Un ou plusieurs produits sont invalides');
     const productById = new Map(products.map((product) => [product.id, product]));
     const calculated = input.lines.map((line) => {
-      const totals = calculatePurchaseLine({ quantity: line.quantity, unitCost: line.unitCost, discountPercent: line.discountPercent, taxRate: line.taxRate });
-      return { input: line, totals, product: productById.get(line.productId)! };
+      const product = productById.get(line.productId)!;
+      // La TVA suit le produit, sauf taux explicite sur la ligne (TVA réduite, exonération).
+      const taxRate = line.taxRate ?? product.taxRate;
+      const totals = calculatePurchaseLine({ quantity: line.quantity, unitCost: line.unitCost, discountPercent: line.discountPercent, taxRate });
+      return { input: line, taxRate, totals, product };
     });
     const totals = calculatePurchaseTotals(calculated.map((line) => line.totals));
     return tx.purchaseOrder.create({
@@ -68,12 +71,12 @@ export async function createPurchaseOrder(organizationId: string, createdById: s
         total: totals.total,
         createdById,
         lines: {
-          create: calculated.map(({ input: line, totals: lineTotals }) => ({
+          create: calculated.map(({ input: line, taxRate, totals: lineTotals }) => ({
             productId: line.productId,
             quantity: line.quantity,
             unitCost: line.unitCost,
             discountPercent: line.discountPercent,
-            taxRate: line.taxRate,
+            taxRate,
             lineSubtotal: lineTotals.lineSubtotal,
             taxAmount: lineTotals.taxAmount,
             lineTotal: lineTotals.lineTotal,

@@ -7,7 +7,7 @@ const lineSchema = z.object({
   quantity: z.coerce.number().finite().positive().refine((value) => decimalPlaces(value, 4), 'La quantité doit avoir au plus 4 décimales'),
   unitCost: z.coerce.number().finite().min(0).refine((value) => decimalPlaces(value, 4), 'Le coût doit avoir au plus 4 décimales'),
   discountPercent: z.coerce.number().finite().min(0).max(100).refine((value) => decimalPlaces(value, 3), 'La remise doit avoir au plus 3 décimales').default(0),
-  taxRate: z.coerce.number().finite().min(0).max(100).refine((value) => decimalPlaces(value, 3), 'La TVA doit avoir au plus 3 décimales').default(20),
+  taxRate: z.coerce.number().finite().min(0).max(100).refine((value) => decimalPlaces(value, 3), 'La TVA doit avoir au plus 3 décimales').optional(),
 });
 
 export const listPurchaseOrdersSchema = z.object({

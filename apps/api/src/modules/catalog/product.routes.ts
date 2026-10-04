@@ -1,8 +1,8 @@
 import type { FastifyInstance } from 'fastify';
-import { parse, uuidSchema } from '../../lib/validation.js';
+import { NUMERIC_COLUMN, parse, uuidSchema } from '../../lib/validation.js';
 import { sendData, sendPage } from '../../lib/response.js';
 import { serializeMovement, serializeProduct } from '../../lib/serializers.js';
-import { openApiIdParam, openApiProtected } from '../../openapi.js';
+import { numericProperty, openApiIdParam, openApiProtected } from '../../openapi.js';
 import { createProductSchema, listProductsSchema, updateProductSchema } from './product.schemas.js';
 import { createProduct, deactivateProduct, getProduct, getProductAlerts, getProductByBarcode, getProductStock, listProducts, updateProduct } from './product.service.js';
 
@@ -51,11 +51,11 @@ export async function productRoutes(app: FastifyInstance): Promise<void> {
             barcode: { type: 'string', nullable: true },
             categoryId: { type: 'string', format: 'uuid', nullable: true },
             unit: { type: 'string' },
-            costPrice: { type: 'number', minimum: 0 },
-            salePrice: { type: 'number', minimum: 0 },
-            taxRate: { type: 'number', minimum: 0, maximum: 100 },
-            minStock: { type: 'number', minimum: 0 },
-            maxStock: { type: 'number', minimum: 0, nullable: true },
+            costPrice: numericProperty(NUMERIC_COLUMN.unitAmount, { minimum: 0 }),
+            salePrice: numericProperty(NUMERIC_COLUMN.unitAmount, { minimum: 0 }),
+            taxRate: numericProperty(NUMERIC_COLUMN.percent, { minimum: 0, maximum: 100 }),
+            minStock: numericProperty(NUMERIC_COLUMN.quantity, { minimum: 0 }),
+            maxStock: numericProperty(NUMERIC_COLUMN.quantity, { minimum: 0, nullable: true }),
           },
         },
       },

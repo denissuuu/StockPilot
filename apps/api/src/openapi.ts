@@ -56,6 +56,18 @@ export const openApiIdParam = {
 
 export const openApiErrorResponse = errorResponse;
 
+import { columnLimit, type NumericColumn } from './lib/validation.js';
+
+/**
+ * Fragment OpenAPI d'un nombre dont la magnitude est bornée par la capacité de
+ * la colonne NUMERIC qui l'accueille. La borne est reprise de la même source que
+ * la validation zod : le contrat publié ne peut plus diverger de ce que l'API
+ * accepte réellement.
+ */
+export function numericProperty(column: NumericColumn, extra: Record<string, unknown> = {}): Record<string, unknown> {
+  return { type: 'number', maximum: columnLimit(column).toNumber(), ...extra };
+}
+
 export const openApiPageQuery = {
   type: 'object',
   properties: {
@@ -153,6 +165,7 @@ export const openApiSchemas = {
       supplierId: { type: 'string', format: 'uuid' },
       status: { type: 'string', enum: ['DRAFT', 'ORDERED', 'PARTIALLY_RECEIVED', 'RECEIVED', 'CANCELLED'] },
       subtotal: { type: 'number' },
+      discountTotal: { type: 'number' },
       taxTotal: { type: 'number' },
       total: { type: 'number' },
     },

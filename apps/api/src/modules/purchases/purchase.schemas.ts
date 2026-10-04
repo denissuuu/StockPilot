@@ -1,13 +1,13 @@
 import { PurchaseOrderStatus } from '@prisma/client';
 import { z } from 'zod';
-import { decimalPlaces } from '../../lib/validation.js';
+import { NUMERIC_COLUMN, boundedByColumn } from '../../lib/validation.js';
 
 const lineSchema = z.object({
   productId: z.string().uuid(),
-  quantity: z.coerce.number().finite().positive().refine((value) => decimalPlaces(value, 4), 'La quantité doit avoir au plus 4 décimales'),
-  unitCost: z.coerce.number().finite().min(0).refine((value) => decimalPlaces(value, 4), 'Le coût doit avoir au plus 4 décimales'),
-  discountPercent: z.coerce.number().finite().min(0).max(100).refine((value) => decimalPlaces(value, 3), 'La remise doit avoir au plus 3 décimales').default(0),
-  taxRate: z.coerce.number().finite().min(0).max(100).refine((value) => decimalPlaces(value, 3), 'La TVA doit avoir au plus 3 décimales').optional(),
+  quantity: z.coerce.number().finite().positive().superRefine(boundedByColumn(NUMERIC_COLUMN.quantity, 'La quantité')),
+  unitCost: z.coerce.number().finite().min(0).superRefine(boundedByColumn(NUMERIC_COLUMN.unitAmount, 'Le coût')),
+  discountPercent: z.coerce.number().finite().min(0).max(100).default(0).superRefine(boundedByColumn(NUMERIC_COLUMN.percent, 'La remise')),
+  taxRate: z.coerce.number().finite().min(0).max(100).superRefine(boundedByColumn(NUMERIC_COLUMN.percent, 'La TVA')).optional(),
 });
 
 export const listPurchaseOrdersSchema = z.object({
@@ -41,7 +41,7 @@ export const receivePurchaseOrderSchema = z.object({
   receivedAt: z.coerce.date().optional(),
   lines: z.array(z.object({
     lineId: z.string().uuid(),
-    quantity: z.coerce.number().finite().positive().refine((value) => decimalPlaces(value, 4), 'La quantité doit avoir au plus 4 décimales'),
+    quantity: z.coerce.number().finite().positive().superRefine(boundedByColumn(NUMERIC_COLUMN.quantity, 'La quantité reçue')),
   })).min(1).max(500),
 }).superRefine((value, ctx) => {
   const ids = value.lines.map((line) => line.lineId);

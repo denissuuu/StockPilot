@@ -1,8 +1,8 @@
 import type { FastifyInstance } from 'fastify';
-import { parse } from '../../lib/validation.js';
+import { NUMERIC_COLUMN, parse } from '../../lib/validation.js';
 import { sendData, sendPage } from '../../lib/response.js';
 import { serializeAdjustment, serializeMovement } from '../../lib/serializers.js';
-import { openApiProtected } from '../../openapi.js';
+import { numericProperty, openApiProtected } from '../../openapi.js';
 import { createAdjustmentSchema, createInitialStockSchema, listAdjustmentsSchema, listMovementsSchema } from './stock.schemas.js';
 import { createAdjustment, createInitialStock, listAdjustments, listMovements } from './stock.service.js';
 
@@ -32,8 +32,8 @@ export async function stockRoutes(app: FastifyInstance): Promise<void> {
           required: ['productId', 'quantity'],
           properties: {
             productId: { type: 'string', format: 'uuid' },
-            quantity: { type: 'number', exclusiveMinimum: 0 },
-            unitCost: { type: 'number', minimum: 0 },
+            quantity: numericProperty(NUMERIC_COLUMN.quantity, { exclusiveMinimum: 0 }),
+            unitCost: numericProperty(NUMERIC_COLUMN.unitAmount, { minimum: 0 }),
             note: { type: 'string', nullable: true },
           },
         },

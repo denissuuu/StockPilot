@@ -1,22 +1,22 @@
 import type { FastifyInstance } from 'fastify';
-import { parse, uuidSchema } from '../../lib/validation.js';
+import { NUMERIC_COLUMN, parse, uuidSchema } from '../../lib/validation.js';
 import { sendData, sendPage } from '../../lib/response.js';
 import { serializePurchaseOrder } from '../../lib/serializers.js';
-import { openApiIdParam, openApiProtected } from '../../openapi.js';
+import { numericProperty, openApiIdParam, openApiProtected } from '../../openapi.js';
 import { createPurchaseOrderSchema, listPurchaseOrdersSchema, receivePurchaseOrderSchema, updatePurchaseOrderSchema } from './purchase.schemas.js';
 import { cancelPurchaseOrder, createPurchaseOrder, getPurchaseOrder, listPurchaseOrders, markPurchaseOrderOrdered, receivePurchaseOrder, updatePurchaseOrder } from './purchase.service.js';
 
 const purchaseLineProperties = {
   productId: { type: 'string', format: 'uuid' },
-  quantity: { type: 'number', exclusiveMinimum: 0 },
-  unitCost: { type: 'number', minimum: 0 },
-  discountPercent: { type: 'number', minimum: 0, maximum: 100, default: 0 },
-  taxRate: { type: 'number', minimum: 0, maximum: 100, description: 'Taux de TVA de la ligne. Par défaut, le taux du produit.' },
+  quantity: numericProperty(NUMERIC_COLUMN.quantity, { exclusiveMinimum: 0 }),
+  unitCost: numericProperty(NUMERIC_COLUMN.unitAmount, { minimum: 0 }),
+  discountPercent: numericProperty(NUMERIC_COLUMN.percent, { minimum: 0, maximum: 100, default: 0 }),
+  taxRate: numericProperty(NUMERIC_COLUMN.percent, { minimum: 0, maximum: 100, description: 'Taux de TVA de la ligne. Par défaut, le taux du produit.' }),
 } as const;
 
 const receiptLineProperties = {
   lineId: { type: 'string', format: 'uuid' },
-  quantity: { type: 'number', exclusiveMinimum: 0 },
+  quantity: numericProperty(NUMERIC_COLUMN.quantity, { exclusiveMinimum: 0 }),
 } as const;
 
 export async function purchaseRoutes(app: FastifyInstance): Promise<void> {

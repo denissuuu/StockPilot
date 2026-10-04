@@ -1,17 +1,17 @@
 import type { FastifyInstance } from 'fastify';
-import { parse, uuidSchema } from '../../lib/validation.js';
+import { NUMERIC_COLUMN, parse, uuidSchema } from '../../lib/validation.js';
 import { sendData, sendPage } from '../../lib/response.js';
 import { serializeSale } from '../../lib/serializers.js';
-import { openApiIdParam, openApiProtected } from '../../openapi.js';
+import { numericProperty, openApiIdParam, openApiProtected } from '../../openapi.js';
 import { createSaleSchema, listSalesSchema } from './sale.schemas.js';
 import { cancelSale, createSale, getSale, listSales } from './sale.service.js';
 
 const saleLineProperties = {
   productId: { type: 'string', format: 'uuid' },
-  quantity: { type: 'number', exclusiveMinimum: 0 },
-  unitPrice: { type: 'number', minimum: 0 },
-  discountPercent: { type: 'number', minimum: 0, maximum: 100, default: 0 },
-  taxRate: { type: 'number', minimum: 0, maximum: 100 },
+  quantity: numericProperty(NUMERIC_COLUMN.quantity, { exclusiveMinimum: 0 }),
+  unitPrice: numericProperty(NUMERIC_COLUMN.unitAmount, { minimum: 0 }),
+  discountPercent: numericProperty(NUMERIC_COLUMN.percent, { minimum: 0, maximum: 100, default: 0 }),
+  taxRate: numericProperty(NUMERIC_COLUMN.percent, { minimum: 0, maximum: 100 }),
 } as const;
 
 export async function saleRoutes(app: FastifyInstance): Promise<void> {

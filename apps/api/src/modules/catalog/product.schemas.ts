@@ -1,8 +1,11 @@
 import { z } from 'zod';
-import { decimalPlaces } from '../../lib/validation.js';
+import { NUMERIC_COLUMN, boundedByColumn } from '../../lib/validation.js';
 
-const nonNegative = z.coerce.number().finite().min(0).refine((value) => decimalPlaces(value, 4), 'La valeur doit avoir au plus 4 décimales');
-const taxRate = z.coerce.number().finite().min(0).max(100).refine((value) => decimalPlaces(value, 3), 'La TVA doit avoir au plus 3 décimales');
+// Les prix vivent dans une colonne NUMERIC(14,4) et les seuils dans une
+// NUMERIC(16,4) : la magnitude maximale n'est pas la même, le message non plus.
+const price = (label: string) => z.coerce.number().finite().min(0).superRefine(boundedByColumn(NUMERIC_COLUMN.unitAmount, label));
+const stockLevel = (label: string) => z.coerce.number().finite().min(0).superRefine(boundedByColumn(NUMERIC_COLUMN.quantity, label));
+const taxRate = z.coerce.number().finite().min(0).max(100).superRefine(boundedByColumn(NUMERIC_COLUMN.percent, 'La TVA'));
 const optionalBoolean = z.preprocess((value) => {
   if (value === undefined) return undefined;
   return value === true || value === 'true' || value === '1';
@@ -24,11 +27,11 @@ export const createProductSchema = z.object({
   barcode: z.string().trim().max(80).nullable().optional(),
   categoryId: z.string().uuid().nullable().optional(),
   unit: z.string().trim().min(1).max(20).default('pcs'),
-  costPrice: nonNegative,
-  salePrice: nonNegative,
+  costPrice: price('Le prix de revient'),
+  salePrice: price('Le prix de vente'),
   taxRate: taxRate.default(20),
-  minStock: nonNegative.default(0),
-  maxStock: nonNegative.nullable().optional(),
+  minStock: stockLevel('Le seuil minimum').default(0),
+  maxStock: stockLevel('Le seuil maximum').nullable().optional(),
   isActive: z.boolean().default(true),
 });
 
@@ -40,11 +43,11 @@ export const updateProductSchema = z
     barcode: z.string().trim().max(80).nullable().optional(),
     categoryId: z.string().uuid().nullable().optional(),
     unit: z.string().trim().min(1).max(20).optional(),
-    costPrice: nonNegative.optional(),
-    salePrice: nonNegative.optional(),
+    costPrice: price('Le prix de revient').optional(),
+    salePrice: price('Le prix de vente').optional(),
     taxRate: taxRate.optional(),
-    minStock: nonNegative.optional(),
-    maxStock: nonNegative.nullable().optional(),
+    minStock: stockLevel('Le seuil minimum').optional(),
+    maxStock: stockLevel('Le seuil maximum').nullable().optional(),
     isActive: z.boolean().optional(),
   })
   .refine((value) => Object.keys(value).length > 0, { message: 'Au moins un champ est requis' });

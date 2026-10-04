@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
 import { conflict, notFound, unprocessable } from '../../lib/errors.js';
 import { pageMeta, pagination } from '../../lib/pagination.js';
+import { wholeDayFilter } from '../../lib/query.js';
 import { getCurrentStock } from '../catalog/stock.service.js';
 import type { CreateAdjustmentInput, CreateInitialStockInput, ListAdjustmentsInput, ListMovementsInput } from './stock.schemas.js';
 
@@ -23,7 +24,7 @@ export async function listMovements(organizationId: string, input: ListMovements
     organizationId,
     ...(input.productId ? { productId: input.productId } : {}),
     ...(input.type ? { type: input.type } : {}),
-    ...(input.from || input.to ? { createdAt: { ...(input.from ? { gte: input.from } : {}), ...(input.to ? { lte: input.to } : {}) } } : {}),
+    ...(input.from || input.to ? { createdAt: wholeDayFilter(input) } : {}),
     ...(input.search ? { OR: [{ note: { contains: input.search, mode: 'insensitive' } }, { product: { name: { contains: input.search, mode: 'insensitive' } } }, { product: { sku: { contains: input.search, mode: 'insensitive' } } }] } : {}),
   };
   const [movements, total] = await prisma.$transaction([
@@ -108,7 +109,7 @@ export async function listAdjustments(organizationId: string, input: ListAdjustm
     organizationId,
     ...(input.productId ? { productId: input.productId } : {}),
     ...(input.reason ? { reason: input.reason } : {}),
-    ...(input.from || input.to ? { createdAt: { ...(input.from ? { gte: input.from } : {}), ...(input.to ? { lte: input.to } : {}) } } : {}),
+    ...(input.from || input.to ? { createdAt: wholeDayFilter(input) } : {}),
   };
   const [adjustments, total] = await prisma.$transaction([
     prisma.stockAdjustment.findMany({ where, skip, take, orderBy: { createdAt: 'desc' }, include: adjustmentInclude }),

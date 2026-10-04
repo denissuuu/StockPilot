@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { boundedDateRange, coherentDateRange, dateRangeSchema, isCoherentDateRange } from '../src/lib/query.js';
+import { boundedDateRange, coherentDateRange, dateRangeSchema, isCoherentDateRange, wholeDayFilter } from '../src/lib/query.js';
 import { dashboardSchema } from '../src/modules/dashboard/dashboard.schemas.js';
 import { listPurchaseOrdersSchema } from '../src/modules/purchases/purchase.schemas.js';
 import { listSalesSchema } from '../src/modules/sales/sale.schemas.js';
@@ -54,6 +54,44 @@ describe('bornes de période partagées', () => {
   it('laisse from et to facultatifs dans le schéma autonome', () => {
     expect(dateRangeSchema.safeParse({}).success).toBe(true);
     expect(dateRangeSchema.safeParse({ from: '2026-01-01' }).success).toBe(true);
+  });
+});
+
+describe('wholeDayFilter', () => {
+  const periode = { from: new Date('2026-03-01T18:30:00.000Z'), to: new Date('2026-03-10T09:15:00.000Z') };
+
+  it('inclut la dernière journée demandée jusqu’à sa fin', () => {
+    const { lte } = wholeDayFilter(periode);
+
+    // Sans cet élargissement, la borne haute valait 2026-03-10T00:00 et le 10 disparaissait.
+    expect(lte?.toISOString()).toBe('2026-03-10T23:59:59.999Z');
+  });
+
+  it('ouvre la première journée demandée dès son début', () => {
+    expect(wholeDayFilter(periode).gte?.toISOString()).toBe('2026-03-01T00:00:00.000Z');
+  });
+
+  it('couvre exactement les journées demandées', () => {
+    const { gte, lte } = wholeDayFilter(periode);
+    const jours = (lte!.getTime() - gte!.getTime()) / 86_400_000;
+
+    // 10 journées, à la milliseconde près : endOfDay ferme à 23:59:59.999.
+    expect(jours).toBeCloseTo(10, 5);
+  });
+
+  it('ne pose que la borne fournie', () => {
+    expect(wholeDayFilter({ from: periode.from })).toEqual({ gte: new Date('2026-03-01T00:00:00.000Z') });
+    expect(wholeDayFilter({ to: periode.to })).toEqual({ lte: new Date('2026-03-10T23:59:59.999Z') });
+    expect(wholeDayFilter({})).toEqual({});
+  });
+
+  it('préserve la symétrie des bornes déjà à minuit et en fin de journée', () => {
+    const entieres = { from: new Date('2026-03-01T00:00:00.000Z'), to: new Date('2026-03-10T23:59:59.999Z') };
+
+    expect(wholeDayFilter(entieres)).toEqual({
+      gte: new Date('2026-03-01T00:00:00.000Z'),
+      lte: new Date('2026-03-10T23:59:59.999Z'),
+    });
   });
 });
 

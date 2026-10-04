@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
 import { conflict, notFound, unprocessable } from '../../lib/errors.js';
 import { pageMeta, pagination } from '../../lib/pagination.js';
+import { wholeDayFilter } from '../../lib/query.js';
 import { acquireIdempotencyKey, completeIdempotencyKey, idempotencyHash } from '../../lib/idempotency.js';
 import { calculatePurchaseLine, calculatePurchaseTotals, decimal } from '../../lib/financial.js';
 import { getCurrentStocks } from '../catalog/stock.service.js';
@@ -27,7 +28,7 @@ export async function listPurchaseOrders(organizationId: string, input: ListPurc
     organizationId,
     ...(input.status ? { status: input.status } : {}),
     ...(input.supplierId ? { supplierId: input.supplierId } : {}),
-    ...(input.from || input.to ? { createdAt: { ...(input.from ? { gte: input.from } : {}), ...(input.to ? { lte: input.to } : {}) } } : {}),
+    ...(input.from || input.to ? { createdAt: wholeDayFilter(input) } : {}),
     ...(input.search ? { OR: [{ reference: { contains: input.search, mode: 'insensitive' } }, { supplier: { name: { contains: input.search, mode: 'insensitive' } } }] } : {}),
   };
   const [orders, total] = await prisma.$transaction([

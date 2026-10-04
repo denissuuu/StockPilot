@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { badRequest } from './errors.js';
+import { endOfDay, startOfDay } from './dates.js';
 
 /**
  * Une période dont le début est postérieur à la fin ne filtre rien : la requête
@@ -31,6 +32,21 @@ export const dateRangeShape = {
 export const dateRangeSchema = z.object(dateRangeShape).refine(isCoherentDateRange, coherentDateRange);
 
 export type DateRangeInput = z.infer<typeof dateRangeSchema>;
+
+/**
+ * Traduit une période demandée en filtre de date, élargi aux journées entières.
+ *
+ * Une période s'exprime en jours, pas en instants : « du 1er au 10 » doit inclure
+ * le 10 dans sa totalité. La borne haute valait minuit du 10, si bien que la
+ * dernière journée demandée disparaissait du résultat. Les bornes sont aussi
+ * rendues symétriques, pour qu'un même filtre s'applique identiquement partout.
+ */
+export function wholeDayFilter(input: DateRangeInput): { gte?: Date; lte?: Date } {
+  return {
+    ...(input.from ? { gte: startOfDay(input.from) } : {}),
+    ...(input.to ? { lte: endOfDay(input.to) } : {}),
+  };
+}
 
 export function boundedDateRange(input: DateRangeInput): { from: Date; to: Date } {
   const to = input.to ?? new Date();

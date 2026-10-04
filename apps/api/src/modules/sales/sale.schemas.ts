@@ -1,6 +1,7 @@
 import { SaleStatus } from '@prisma/client';
 import { z } from 'zod';
 import { NUMERIC_COLUMN, boundedByColumn } from '../../lib/validation.js';
+import { coherentDateRange, dateRangeShape, isCoherentDateRange } from '../../lib/query.js';
 
 const lineSchema = z.object({
   productId: z.string().uuid(),
@@ -16,9 +17,8 @@ export const listSalesSchema = z.object({
   search: z.string().trim().max(120).optional(),
   status: z.nativeEnum(SaleStatus).optional(),
   customerId: z.string().uuid().optional(),
-  from: z.coerce.date().optional(),
-  to: z.coerce.date().optional(),
-}).refine((value) => !value.from || !value.to || value.from <= value.to, { message: 'Période invalide', path: ['from'] });
+  ...dateRangeShape,
+}).refine(isCoherentDateRange, coherentDateRange);
 
 export const createSaleSchema = z.object({
   customerId: z.string().uuid().nullable().optional(),

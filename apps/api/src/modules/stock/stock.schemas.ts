@@ -1,18 +1,16 @@
 import { AdjustmentReason, MovementType } from '@prisma/client';
 import { z } from 'zod';
 import { NUMERIC_COLUMN, boundedByColumn } from '../../lib/validation.js';
-
-const optionalDate = z.coerce.date().optional();
+import { coherentDateRange, dateRangeShape, isCoherentDateRange } from '../../lib/query.js';
 
 export const listMovementsSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
   productId: z.string().uuid().optional(),
   type: z.nativeEnum(MovementType).optional(),
-  from: optionalDate,
-  to: optionalDate,
+  ...dateRangeShape,
   search: z.string().trim().max(120).optional(),
-}).refine((value) => !value.from || !value.to || value.from <= value.to, { message: 'Période invalide', path: ['from'] });
+}).refine(isCoherentDateRange, coherentDateRange);
 
 export const createAdjustmentSchema = z.object({
   productId: z.string().uuid(),
@@ -33,9 +31,8 @@ export const listAdjustmentsSchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
   productId: z.string().uuid().optional(),
   reason: z.nativeEnum(AdjustmentReason).optional(),
-  from: optionalDate,
-  to: optionalDate,
-});
+  ...dateRangeShape,
+}).refine(isCoherentDateRange, coherentDateRange);
 
 export type ListMovementsInput = z.infer<typeof listMovementsSchema>;
 export type CreateAdjustmentInput = z.infer<typeof createAdjustmentSchema>;

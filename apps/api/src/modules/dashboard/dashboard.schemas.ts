@@ -1,12 +1,10 @@
 import { z } from 'zod';
 
+import { coherentDateRange, dateRangeShape, isCoherentDateRange } from '../../lib/query.js';
+
 export const dashboardSchema = z.object({
-  from: z.coerce.date().optional(),
-  to: z.coerce.date().optional(),
+  ...dateRangeShape,
   granularity: z.enum(['day', 'week', 'month']).default('day'),
-}).refine((value) => !value.from || !value.to || value.from <= value.to, {
-  message: 'La date de début doit être antérieure à la date de fin',
-  path: ['from'],
-});
+}).refine(isCoherentDateRange, coherentDateRange);
 
 export type DashboardInput = z.infer<typeof dashboardSchema>;
